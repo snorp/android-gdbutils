@@ -2,9 +2,8 @@
 # ignore compiled python
 *.pyc
 
-# ignore INSTALL instruction
-/INSTALL
-
 # ignore update marker
 /.update
 
+# ignore gdbinit.local
+gdbinit.local

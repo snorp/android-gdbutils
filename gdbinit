@@ -3,6 +3,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+# Rather than change the values in this file, it's better to create a gdbinit.local
+# file next to this and put your changes there. This one is version controlled.
+
+python import sys
+python sys.path.append('python')
+
 # Load python utilities
 python import adbparams
 python import feninit, tracebt, fastload, adblog, updater
@@ -99,6 +105,7 @@ python import feninit, tracebt, fastload, adblog, updater
 
 #python feninit.default.mochi_xre_update = 28
 
+python feninit.default.ndk_home = '~/.mozbuild/android-ndk-r10e'
 
 # Disable logcat redirection
 #set adb-log-redirect off
@@ -117,21 +124,13 @@ define dump-jni-refs
     call dvmDumpJniReferenceTables()
 end
 
-# Add a command for dumping the gecko profiler's pseudo-stack.
-# This sometimes provides useful information if gdb can't generate
-# a backtrace.
-define dump-pseudo-stack
-    call mozilla_sampler_print_location()
-end
-
-
 # get better error messages
 set python print-stack full
 
 # load local configuration
 python
 import gdb, os
-localconfig = os.path.join(gdb.PYTHONDIR, os.path.pardir, 'gdbinit.local')
+localconfig = 'gdbinit.local'
 if os.path.isfile(localconfig):
     gdb.execute('source ' + localconfig)
 end

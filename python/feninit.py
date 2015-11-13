@@ -11,6 +11,7 @@ class FenInit(gdb.Command):
 
     TASKS = (
         'Debug Fennec (default)',
+        'Debug Fennec (disble on-demand linker)',
         'Debug Fennec with env vars and args',
         'Debug using jdb',
         'Debug content Mochitest',
@@ -19,6 +20,7 @@ class FenInit(gdb.Command):
     )
     (
         TASK_FENNEC,
+        TASK_FENNEC_DISABLE_ONDEMAND,
         TASK_FENNEC_ENV,
         TASK_JAVA,
         TASK_MOCHITEST,
@@ -51,7 +53,7 @@ class FenInit(gdb.Command):
                           'forwarding port for jdb debugging'
                 print '********'
         print '\nFennec GDB utilities'
-        print '  (see utils/gdbinit and utils/gdbinit.local on how to configure settings)'
+        print '  (see gdbinit and gdbinit.local on how to configure settings)'
         for i in range(len(self.TASKS)):
             print '%d. %s' % (i + 1, self.TASKS[i])
         task = 0
@@ -176,16 +178,15 @@ class FenInit(gdb.Command):
                                 ['system', 'vendor', 'lib'],
                                 ['system', 'bin']]
 
-        datadir = str(gdb.parameter('data-directory'))
-        libdir = os.path.abspath(
-                os.path.join(datadir, os.pardir, 'lib', self.device))
+        datadir = os.getcwd()
+        libdir = os.path.join(datadir, 'lib', self.device)
         self.datadir = datadir
         self.libdir = libdir
-        self.bindir = os.path.abspath(
-                os.path.join(datadir, os.pardir, 'bin'))
+        self.bindir = os.path.join(datadir, 'bin')
 
         # always pull the executable file
         self._appProcessName = self._pullAppProcess()
+
         print 'app process name: ' + self._appProcessName
 
         # only pull libs and set paths if automatically loading symbols
@@ -696,14 +697,33 @@ class FenInit(gdb.Command):
 
         print '\nReady. Use "continue" to resume execution.'
 
+    def _findGDBServer(self):
+        info = adb.call(['shell', 'cat', '/proc/cpuinfo'])
+
+        target = None
+        if info.find('ARMv7') > 0 or info.find('aarch64'):
+            target = 'arm'
+        elif info.find('Atom') > 0:
+            target = 'x86'
+        else:
+            raise gdb.GdbError('Unable to determine device architecture')
+
+        ndkHome = os.path.expandvars(os.path.expanduser(self.ndk_home))
+        return os.path.join(ndkHome, 'prebuilt/android-%s/gdbserver/gdbserver' % target)
+
     def _attachGDBServer(self, pkg, filePath, args,
                          skipShell = False, redirectOut = False):
         # get base package name without any webapp part
         pkg = pkg.partition(':')[0]
 
         # always push gdbserver in case there's an old version on the device
-        gdbserverPath = '/data/local/tmp/gdbserver'
-        adb.push(os.path.join(self.bindir, 'gdbserver'), gdbserverPath)
+        tmpPath = '/data/local/tmp/gdbserver'
+        gdbserverPath = '/data/data/' + pkg + '/files/gdbserver'
+
+        localGdbserverPath = self._findGDBServer()
+        print 'Preparing to push gdbserver: ' + localGdbserverPath
+        adb.push(self._findGDBServer(), tmpPath)
+        adb.call(['shell', 'run-as', pkg, 'cp', tmpPath, gdbserverPath])
         adb.call(['shell', 'chmod', '755', gdbserverPath])
 
         # run this after fork() and before exec(gdbserver)
@@ -1255,9 +1275,13 @@ class FenInit(gdb.Command):
                 self._extractApk(pkg, self.bindir, self.libdir)
 
             if (self._task == self.TASK_FENNEC or
+                self._task == self.TASK_FENNEC_DISABLE_ONDEMAND or
                 self._task == self.TASK_FENNEC_ENV or
                 self._task == self.TASK_JAVA):
-                if self._task == self.TASK_FENNEC_ENV:
+                if self._task == self.TASK_FENNEC_DISABLE_ONDEMAND:
+                    self._env = ['MOZ_LINKER_ONDEMAND=0']
+                    self._args = []
+                elif self._task == self.TASK_FENNEC_ENV:
                     self._env, self._args = self._chooseEnvVars()
                 else:
                     self._env, self._args = [], []

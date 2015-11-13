@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [ -z "$NDK_HOME" ]; then
+  NDK_HOME="$HOME/.mozbuild/android-ndk-r10e"
+fi
+
+PLATFORM=$(uname | tr [:upper:] [:lower:])
+
+if [ -z "$TARGET" ]; then
+  TARGET="arm-linux-androideabi"
+fi
+
+GDB_PATH=${NDK_HOME}/toolchains/${TARGET}-4.9/prebuilt/${PLATFORM}-x86_64/bin/${TARGET}-gdb
+
+echo "NDK_HOME = $NDK_HOME"
+echo "PLATFORM = $PLATFORM"
+echo "TARGET = $TARGET"
+echo "GDB_PATH = $GDB_PATH"
+
+exec $GDB_PATH -iex "set auto-load safe-path ." -iex "set auto-load local-gdbinit" -ix gdbinit

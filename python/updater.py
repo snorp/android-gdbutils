@@ -16,8 +16,7 @@ class Updater(gdb.Command):
         return gdb.COMPLETE_NONE
 
     def _callGit(self, args, **kw):
-        cmd = ['git', '--work-tree=' + self.worktree,
-                '--git-dir=' + self.gitdir]
+        cmd = ['git']
         cmd.extend(args)
         if 'stdin' not in kw:
             kw['stdin'] = subprocess.PIPE
@@ -68,13 +67,10 @@ class Updater(gdb.Command):
         if not interval:
             return
 
-        self.worktree = os.path.abspath(
-                os.path.join(gdb.PYTHONDIR, os.path.pardir))
-        self.gitdir = os.path.join(self.worktree, '.git')
-        if not os.path.isdir(self.gitdir):
+        if not os.path.isdir('.git'):
             return
 
-        marker = os.path.join(self.worktree, '.update')
+        marker = '.update'
         def touchUpdate():
             with open(marker, 'a'):
                 os.utime(marker, None)

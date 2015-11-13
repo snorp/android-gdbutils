@@ -149,11 +149,13 @@ else:
     import gdb, subprocess
 
     def call(prompt, *args):
-        cmd = [sys.executable, os.path.join(gdb.PYTHONDIR, 'readinput.py'),
+        # We need to use the system python to run this, because the python
+        # distributed with NDK's gdb does not have readline
+        cmd = ['/usr/bin/python', os.path.join('python', 'readinput.py'),
                 '-p', prompt]
         cmd.extend(list(args))
         try:
-            proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
+            proc = subprocess.Popen(cmd, stderr=subprocess.PIPE, env=dict())
             out = proc.communicate()[1]
         except OSError, e:
             raise gdb.GdbError('cannot run readinput: ' + str(e))

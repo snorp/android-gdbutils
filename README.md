@@ -2,6 +2,12 @@ GDB python scripts to facilitate debugging under Android
 
 ---
 
+## attach
+
+`attach` is a script that will optionally run Fennec (`org.mozilla.fennec_$USER`) on the device and attach gdb to it. It uses the NDK that `mach bootstrap` installs into `~/.mozbuild`.
+
+---
+
 ## tracebt
 
 tracebt is a stack unwinder for ARM that uses the general algorithm at <http://www.mcternan.me.uk/ArmStackUnwinding>. It implements conditional branch history tracking for deterministic branching behavior.
