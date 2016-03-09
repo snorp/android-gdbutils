@@ -101,6 +101,9 @@ class FenInit(gdb.Command):
                 if self._isObjDir(objdir):
                     objdirs.insert(0, objdir)
 
+        if os.environ['OBJDIR']:
+            return os.environ['OBJDIR']
+
         objdir = '' # None means don't use an objdir
         objdirs = []
         # look for possible locations
