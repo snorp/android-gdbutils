@@ -15,7 +15,7 @@ class FenInit(gdb.Command):
         'Debug using jdb',
         'Debug content Mochitest',
         'Debug compiled-code unit test',
-        'Debug Fennec with pid'
+        'Debug with pid'
     )
     (
         TASK_FENNEC,
@@ -1221,6 +1221,10 @@ class FenInit(gdb.Command):
         outThd.start()
         return proc
 
+    def _choosePkg(self):
+        print 'Enter package'
+        return readinput.call(': ', '-d')
+
     def _choosePid(self):
         print 'Enter PID'
         return readinput.call(': ', '-d')
@@ -1280,6 +1284,7 @@ class FenInit(gdb.Command):
                 self._prepareCpp(pkg)
                 self._attachCpp(pkg)
             elif self._task == self.TASK_ATTACH_PID:
+                pkg = self._choosePkg()
                 pid = self._choosePid()
                 self._attachPid(pkg, pid)
 
