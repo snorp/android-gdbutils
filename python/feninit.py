@@ -15,7 +15,7 @@ class FenInit(gdb.Command):
         'Debug using jdb',
         'Debug content Mochitest',
         'Debug compiled-code unit test',
-        'Debug with pid'
+        'Debug other process'
     )
     (
         TASK_FENNEC,
@@ -713,6 +713,7 @@ class FenInit(gdb.Command):
             os.setpgrp()
 
         def runGDBServer(args): # returns (proc, port, stdout)
+            print('Running gdbserver: ' + str(args))
             proc = adb.call(args, stderr=subprocess.PIPE, async=True,
                     preexec_fn=gdbserverPreExec)
             need_watchdog = True
@@ -745,6 +746,9 @@ class FenInit(gdb.Command):
                 return (proc, port, out)
             # not found, error?
             need_watchdog = False
+
+            print('GDB stderr: ' + proc.stderr.read())
+
             return (None, None, out)
 
         # can we run as root?
@@ -1221,11 +1225,23 @@ class FenInit(gdb.Command):
         outThd.start()
         return proc
 
-    def _choosePkg(self):
-        print 'Enter package'
+    def _chooseProcess(self):
+        print 'Enter process name'
         return readinput.call(': ', '-d')
 
-    def _choosePid(self):
+    def _choosePid(self, pkg):
+        pids = [re.split(r'[ \t/]', p.strip())[3] for p in self._getRunningProcs(pkg)]
+        num_pids = len(pids)
+
+        if num_pids == 1:
+            return pids[0]
+
+        if num_pids == 0:
+            print 'Failed to find a running process for ' + pkg
+            print 'Enter PID'
+            return readinput.call(': ', '-d')
+
+        print 'Found PIDs: ' + str(pids)
         print 'Enter PID'
         return readinput.call(': ', '-d')
 
@@ -1284,9 +1300,10 @@ class FenInit(gdb.Command):
                 self._prepareCpp(pkg)
                 self._attachCpp(pkg)
             elif self._task == self.TASK_ATTACH_PID:
-                pkg = self._choosePkg()
-                pid = self._choosePid()
-                self._attachPid(pkg, pid)
+                procName = self._chooseProcess()
+                pid = self._choosePid(procName)
+                print 'Got pid %s for process %s' % (pid, procName)
+                self._attachPid(procName, pid)
 
             self.dont_repeat()
         except:
